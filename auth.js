@@ -1,3 +1,4 @@
+import './sync.js';
 import {firebaseConfig} from './firebase-config.js';
 import {errorKey,formIssue,resetResult} from './auth-core.mjs';
 const q=s=>document.querySelector(s);
@@ -40,7 +41,7 @@ async function initialize(){
   sdk=lib;auth=sdk.getAuth(app.getApps().length?app.getApp():app.initializeApp(firebaseConfig));
   try{await sdk.setPersistence(auth,sdk.browserLocalPersistence)}catch{await sdk.setPersistence(auth,sdk.inMemoryPersistence);status('authStorage')}
   await auth.authStateReady();ready=true;
-  sdk.onAuthStateChanged(auth,()=>{controls();q('#auth-password').value='';q('#auth-confirm').value=''});
+  sdk.onAuthStateChanged(auth,()=>{window.SonoraSync?.connect(auth.currentUser);controls();q('#auth-password').value='';q('#auth-confirm').value=''});
   if(message==='authLoading')status();controls();
  })().catch(()=>{ready=false;status('authOffline','error');q('#auth-retry').hidden=false;initPromise=null;controls()});
  return initPromise;
@@ -63,7 +64,7 @@ q('#auth-form').onsubmit=e=>{e.preventDefault();const email=q('#auth-email').val
   q('#auth-password').value='';q('#auth-confirm').value='';
  });
 };
-q('#auth-logout').onclick=()=>run(async()=>{await sdk.signOut(auth);changeMode('login');q('#auth-email').value='';status('authSignedOut','success')});
+q('#auth-logout').onclick=()=>run(async()=>{if(window.SonoraSync?.hasPending){status('syncBeforeLogout','error');return}await sdk.signOut(auth);changeMode('login');q('#auth-email').value='';status('authSignedOut','success')});
 q('#auth-verify').onclick=()=>run(async()=>{if(!auth.currentUser)return;await sdk.sendEmailVerification(auth.currentUser);status('authVerificationSent','success')});
 q('#auth-refresh').onclick=()=>run(async()=>{if(!auth.currentUser)return;await sdk.reload(auth.currentUser);await auth.currentUser.getIdToken(true);status(auth.currentUser.emailVerified?'authVerified':'authUnverified',auth.currentUser.emailVerified?'success':'');controls()});
 q('#auth-retry').onclick=initialize;
